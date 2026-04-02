@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "DNS Speed Test - 域名IP测速",
+  "version": "1.0.0",
+  "description": "查询域名的可用IP列表并测试访问速度，找出最快的IP用于hosts设置",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "DNS Speed Test"
+  },
+  "permissions": [
+    "activeTab",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://dns.alidns.com/*",
+    "https://doh.pub/*",
+    "https://cloudflare-dns.com/*",
+    "https://dns.google/*",
+    "https://*/*"
+  ]
+}

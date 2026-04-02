@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DNS Speed Test</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@400;600;800&display=swap');
+
+    :root {
+      --bg: #0a0e1a;
+      --surface: #111827;
+      --surface2: #1a2235;
+      --border: #1e2d4a;
+      --accent: #00d4ff;
+      --accent2: #7c3aed;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --text: #e2e8f0;
+      --text-dim: #64748b;
+      --text-muted: #374151;
+      --glow: 0 0 20px rgba(0, 212, 255, 0.15);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 480px;
+      min-height: 320px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      overflow-x: hidden;
+    }
+
+    /* Grid background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+      background-size: 24px 24px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      padding: 16px;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+      box-shadow: 0 0 16px rgba(0, 212, 255, 0.3);
+    }
+
+    .title-group {
+      flex: 1;
+    }
+
+    .title {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 14px;
+      color: var(--accent);
+      letter-spacing: 0.05em;
+      line-height: 1;
+      text-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
+    }
+
+    .subtitle {
+      color: var(--text-dim);
+      font-size: 10px;
+      margin-top: 2px;
+      letter-spacing: 0.08em;
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 8px var(--success);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    /* Input area */
+    .input-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .domain-input {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 12px;
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .domain-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.1), var(--glow);
+    }
+
+    .domain-input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .btn-query {
+      background: linear-gradient(135deg, var(--accent), #0099cc);
+      border: none;
+      border-radius: 6px;
+      padding: 8px 16px;
+      color: #000;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 0.05em;
+      white-space: nowrap;
+    }
+
+    .btn-query:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(0, 212, 255, 0.4);
+    }
+
+    .btn-query:active {
+      transform: translateY(0);
+    }
+
+    .btn-query:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* DNS sources */
+    .dns-sources {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .dns-tag {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 3px 8px;
+      font-size: 10px;
+      color: var(--text-dim);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .dns-tag.active {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .dns-tag .dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    /* Progress */
+    .progress-bar {
+      height: 2px;
+      background: var(--border);
+      border-radius: 1px;
+      margin-bottom: 12px;
+      overflow: hidden;
+      display: none;
+    }
+
+    .progress-bar.show {
+      display: block;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent2), var(--accent));
+      border-radius: 1px;
+      transition: width 0.3s ease;
+      width: 0%;
+    }
+
+    /* Status text */
+    .status-text {
+      font-size: 10px;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+      min-height: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .spinner {
+      width: 10px;
+      height: 10px;
+      border: 1.5px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+
+    .spinner.show {
+      display: block;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Results */
+    .results-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .results-label {
+      font-family: 'Syne', sans-serif;
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-dim);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .results-count {
+      font-size: 10px;
+      color: var(--accent);
+    }
+
+    .results-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      max-height: 320px;
+      overflow-y: auto;
+    }
+
+    .results-list::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .results-list::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .results-list::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 2px;
+    }
+
+    /* IP row */
+    .ip-row {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 10px;
+      display: grid;
+      grid-template-columns: 1fr auto auto auto;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+      animation: fadeIn 0.3s ease forwards;
+      opacity: 0;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .ip-row:hover {
+      border-color: rgba(0, 212, 255, 0.3);
+      background: var(--surface2);
+    }
+
+    .ip-row.fastest {
+      border-color: var(--success);
+      background: rgba(16, 185, 129, 0.05);
+    }
+
+    .ip-address {
+      font-size: 12px;
+      color: var(--text);
+      letter-spacing: 0.02em;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .fastest-badge {
+      background: var(--success);
+      color: #000;
+      font-size: 8px;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 3px;
+      letter-spacing: 0.05em;
+      display: none;
+    }
+
+    .ip-row.fastest .fastest-badge {
+      display: inline-block;
+    }
+
+    .latency-bar-wrap {
+      width: 60px;
+      height: 3px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .latency-bar {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 0.5s ease;
+    }
+
+    .latency-val {
+      font-size: 11px;
+      font-weight: 500;
+      min-width: 48px;
+      text-align: right;
+    }
+
+    .latency-val.fast { color: var(--success); }
+    .latency-val.medium { color: var(--warning); }
+    .latency-val.slow { color: var(--danger); }
+    .latency-val.timeout { color: var(--text-dim); }
+    .latency-val.testing { color: var(--text-dim); animation: blink 0.8s infinite; }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    .copy-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 3px 7px;
+      color: var(--text-dim);
+      cursor: pointer;
+      font-size: 9px;
+      font-family: 'JetBrains Mono', monospace;
+      transition: all 0.15s;
+      letter-spacing: 0.05em;
+    }
+
+    .copy-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .copy-btn.copied {
+      border-color: var(--success);
+      color: var(--success);
+    }
+
+    /* Hosts export */
+    .hosts-section {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+
+    .hosts-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .hosts-label {
+      font-family: 'Syne', sans-serif;
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-dim);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .btn-copy-hosts {
+      background: transparent;
+      border: 1px solid var(--accent2);
+      border-radius: 4px;
+      padding: 3px 10px;
+      color: var(--accent2);
+      cursor: pointer;
+      font-size: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      transition: all 0.2s;
+    }
+
+    .btn-copy-hosts:hover {
+      background: rgba(124, 58, 237, 0.1);
+    }
+
+    .hosts-box {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-size: 11px;
+      color: var(--text-dim);
+      line-height: 1.6;
+      word-break: break-all;
+    }
+
+    .hosts-box .entry {
+      display: flex;
+      gap: 16px;
+    }
+
+    .hosts-box .entry .ip { color: var(--accent); }
+    .hosts-box .entry .domain { color: var(--text); }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 32px 16px;
+      color: var(--text-muted);
+    }
+
+    .empty-icon {
+      font-size: 32px;
+      margin-bottom: 8px;
+      opacity: 0.5;
+    }
+
+    .empty-text {
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+
+    /* Error */
+    .error-msg {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 11px;
+      color: var(--danger);
+      display: none;
+    }
+
+    .error-msg.show {
+      display: block;
+    }
+
+    /* Sort options */
+    .sort-row {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 8px;
+      align-items: center;
+    }
+
+    .sort-label {
+      font-size: 10px;
+      color: var(--text-dim);
+      margin-right: 2px;
+    }
+
+    .sort-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 2px 8px;
+      color: var(--text-dim);
+      cursor: pointer;
+      font-size: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      transition: all 0.15s;
+    }
+
+    .sort-btn.active {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .badge-new {
+      background: var(--accent2);
+      color: #fff;
+      font-size: 8px;
+      padding: 1px 4px;
+      border-radius: 3px;
+      margin-left: 2px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <div class="logo">⚡</div>
+      <div class="title-group">
+        <div class="title">DNS SPEED TEST</div>
+        <div class="subtitle">域名IP测速 · 快速找到最佳IP</div>
+      </div>
+      <div class="status-dot"></div>
+    </div>
+
+    <!-- Input -->
+    <div class="input-row">
+      <input
+        type="text"
+        class="domain-input"
+        id="domainInput"
+        placeholder="输入域名，如 github.com"
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <button class="btn-query" id="queryBtn">查询</button>
+    </div>
+
+    <!-- DNS Sources indicator -->
+    <div class="dns-sources" id="dnsSources">
+      <div class="dns-tag active"><span class="dot"></span>Ali DNS</div>
+      <div class="dns-tag active"><span class="dot"></span>DNSPod</div>
+      <div class="dns-tag active"><span class="dot"></span>Cloudflare</div>
+      <div class="dns-tag active"><span class="dot"></span>Google</div>
+    </div>
+
+    <!-- Progress -->
+    <div class="progress-bar" id="progressBar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+
+    <!-- Status -->
+    <div class="status-text">
+      <div class="spinner" id="spinner"></div>
+      <span id="statusText">输入域名后点击查询</span>
+    </div>
+
+    <!-- Error -->
+    <div class="error-msg" id="errorMsg"></div>
+
+    <!-- Results -->
+    <div id="resultsArea" style="display:none">
+      <div class="results-header">
+        <span class="results-label">IP 列表</span>
+        <span class="results-count" id="resultsCount"></span>
+      </div>
+
+      <div class="sort-row">
+        <span class="sort-label">排序:</span>
+        <button class="sort-btn active" id="sortLatency">延迟</button>
+        <button class="sort-btn" id="sortIP">IP</button>
+      </div>
+
+      <div class="results-list" id="resultsList"></div>
+
+      <div class="hosts-section" id="hostsSection" style="display:none">
+        <div class="hosts-header">
+          <span class="hosts-label">Hosts 配置</span>
+          <button class="btn-copy-hosts" id="copyHostsBtn">复制最快IP</button>
+        </div>
+        <div class="hosts-box" id="hostsBox"></div>
+      </div>
+    </div>
+
+    <!-- Empty state -->
+    <div class="empty-state" id="emptyState">
+      <div class="empty-icon">🌐</div>
+      <div class="empty-text">查询域名的所有可用IP<br>并测试访问延迟</div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
