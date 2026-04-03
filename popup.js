@@ -353,7 +353,18 @@ function createIPRow(item, isFastest) {
 
   row.querySelector('.copy-btn').addEventListener('click', (e) => {
     e.stopPropagation();
-    copyToClipboard(ip, e.target);
+    const btn = e.currentTarget;
+    navigator.clipboard.writeText(ip).then(() => {
+      btn.textContent = '✓';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        const currentBtn = document.querySelector(`.copy-btn[data-ip="${ip}"]`);
+        if (currentBtn) {
+          currentBtn.textContent = '复制';
+          currentBtn.classList.remove('copied');
+        }
+      }, 1500);
+    }).catch(() => {});
   });
 
   return row;
@@ -400,11 +411,12 @@ async function copyHostsEntry() {
 
   valid.sort((a, b) => a.latency - b.latency);
   const entry = `${valid[0].ip}  ${currentDomain}`;
-  await copyToClipboard(entry, copyHostsBtn);
-
   const orig = copyHostsBtn.textContent;
-  copyHostsBtn.textContent = '✓ 已复制';
-  setTimeout(() => { copyHostsBtn.textContent = orig; }, 1500);
+  try {
+    await navigator.clipboard.writeText(entry);
+    copyHostsBtn.textContent = '✓ 已复制';
+    setTimeout(() => { copyHostsBtn.textContent = orig; }, 1500);
+  } catch {}
 }
 
 function isValidIPv4(ip) {
