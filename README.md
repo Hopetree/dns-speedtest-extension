@@ -1,5 +1,8 @@
 # DNS Speed Test 浏览器插件
 
+<img width="478" height="414" alt="image" src="https://github.com/user-attachments/assets/84503352-1859-4d6d-98f5-4f7aa51b4092" />
+
+
 ## 功能
 - 通过 AliDNS、DNSPod（腾讯）、Cloudflare、Google 四个服务查询域名的所有IP
 - 自动测试每个IP的访问延迟
